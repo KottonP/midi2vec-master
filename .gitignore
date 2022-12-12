@@ -5,4 +5,4 @@ embeddings/
 .ipynb_checkpoints/
 *.mid
 old/
-_pycache_/
+__pycache__/
