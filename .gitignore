@@ -1,0 +1,8 @@
+.DS_Store
+edgelist/
+.idea/
+embeddings/
+.ipynb_checkpoints/
+*.mid
+old/
+_pycache_/
