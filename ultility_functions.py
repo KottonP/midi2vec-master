@@ -1,4 +1,5 @@
 import numpy as np
+from scipy.stats import ttest_ind, mannwhitneyu, wilcoxon
 import math
 from tensorflow import keras
 from matplotlib import pyplot as plt
@@ -69,3 +70,27 @@ class OneCycleScheduler(keras.callbacks.Callback):
                                      self.start_rate, self.last_rate)
         self.iteration += 1
         K.set_value(self.model.optimizer.learning_rate, rate)
+
+
+def sign_tests(network_1_accuracies, network_2_accuracies):
+
+    # Calculate the p-value for the Student's t-test
+    t_statistic, p_value_t = ttest_ind(network_1_accuracies, network_2_accuracies)
+
+    # Calculate the p-value for the Mann-Whitney U test
+    u_statistic, p_value_u = mannwhitneyu(network_1_accuracies, network_2_accuracies)
+
+    # Calculate the p-value for the Wilcoxon signed-rank test
+    z_statistic, p_value_z = wilcoxon(network_1_accuracies, network_2_accuracies)
+
+    # Choose the test with the lowest p-value
+    p_values = [p_value_t, p_value_u, p_value_z]
+    best_test = np.argmin(p_values)
+
+    # Print the chosen test and its p-value
+    if best_test == 0:
+        print('Student\'s t-test:', p_value_t)
+    elif best_test == 1:
+        print('Mann-Whitney U test:', p_value_u)
+    elif best_test == 2:
+        print('Wilcoxon signed-rank test:', p_value_z)
