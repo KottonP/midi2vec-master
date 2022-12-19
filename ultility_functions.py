@@ -1,9 +1,12 @@
 import numpy as np
+import inspect
+
+from keras.utils import plot_model
 from scipy.stats import ttest_ind, mannwhitneyu, wilcoxon
 import math
 from tensorflow import keras
 from matplotlib import pyplot as plt
-
+from scikeras.wrappers import KerasClassifier
 
 # Source taken from https://github.com/ageron/handson-ml2/blob/master/11_training_deep_neural_networks.ipynb
 K = keras.backend
@@ -73,7 +76,6 @@ class OneCycleScheduler(keras.callbacks.Callback):
 
 
 def sign_tests(network_1_accuracies, network_2_accuracies):
-
     # Calculate the p-value for the Student's t-test
     t_statistic, p_value_t = ttest_ind(network_1_accuracies, network_2_accuracies)
 
@@ -94,3 +96,10 @@ def sign_tests(network_1_accuracies, network_2_accuracies):
         print('Mann-Whitney U test:', p_value_u)
     elif best_test == 2:
         print('Wilcoxon signed-rank test:', p_value_z)
+
+
+def get_model_plot(clf: KerasClassifier, net_params: dict):
+    clf_params = clf.get_params(deep=True)
+    model = clf_params["model"]
+    model_params = {key: net_params[key] for key in inspect.signature(model).parameters.keys()}
+    plot_model(model(**model_params))  # TODO: does not plot_model
