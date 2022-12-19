@@ -4,6 +4,7 @@ from tensorflow import keras
 from matplotlib import pyplot as plt
 
 
+# Source taken from https://github.com/ageron/handson-ml2/blob/master/11_training_deep_neural_networks.ipynb
 K = keras.backend
 
 
