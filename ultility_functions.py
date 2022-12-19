@@ -1,4 +1,10 @@
-import keras
+import numpy as np
+import math
+from tensorflow import keras
+from matplotlib import pyplot as plt
+
+
+K = keras.backend
 
 
 class ExponentialLearningRate(keras.callbacks.Callback):
