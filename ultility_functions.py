@@ -5,6 +5,7 @@ from keras.utils import plot_model
 from scipy.stats import ttest_ind, mannwhitneyu, wilcoxon
 import math
 from tensorflow import keras
+from keras.callbacks import EarlyStopping
 from matplotlib import pyplot as plt
 from scikeras.wrappers import KerasClassifier
 
@@ -48,8 +49,7 @@ def plot_lr_vs_loss(rates, losses):
 
 
 class OneCycleScheduler(keras.callbacks.Callback):
-    def __init__(self, iterations, max_rate, start_rate=None,
-                 last_iterations=None, last_rate=None):
+    def __init__(self, iterations, max_rate, start_rate=None, last_iterations=None, last_rate=None):
         self.iterations = iterations
         self.max_rate = max_rate
         self.start_rate = start_rate or max_rate / 10
@@ -103,3 +103,38 @@ def get_model_plot(clf: KerasClassifier, net_params: dict):
     model = clf_params["model"]
     model_params = {key: net_params[key] for key in inspect.signature(model).parameters.keys()}
     plot_model(model(**model_params))  # TODO: does not plot_model
+
+
+def get_model(clf: KerasClassifier, net_params: dict):
+    clf_params = clf.get_params(deep=True)
+    model = clf_params["model"]
+    model_params = {key: net_params[key] for key in inspect.signature(model).parameters.keys()}
+    return model(**model_params)
+
+
+def on_epoch_end(self, epoch, logs=None):  # start_from_epoch implementation due to older Keras version
+    current = self.get_monitor_value(logs)
+    if current is None or epoch < self.start_from_epoch:
+        # If no monitor value exists or still in initial warm-up stage.
+        return
+    if self.restore_best_weights and self.best_weights is None:
+        # Restore the weights after first epoch if no progress is ever made.
+        self.best_weights = self.model.get_weights()
+
+
+class EarlyStoppingUp(EarlyStopping):
+
+    def __init__(self, start_from_epoch=0):
+
+        super().__init__()
+
+        self.start_from_epoch = start_from_epoch
+
+    def on_epoch_end(self, epoch, logs=None):  # start_from_epoch implementation due to older Keras version
+        current = self.get_monitor_value(logs)
+        if current is None or epoch < self.start_from_epoch:
+            # If no monitor value exists or still in initial warm-up stage.
+            return
+        if self.restore_best_weights and self.best_weights is None:
+            # Restore the weights after first epoch if no progress is ever made.
+            self.best_weights = self.model.get_weights()
