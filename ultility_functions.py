@@ -15,6 +15,7 @@ K = keras.backend
 
 class ExponentialLearningRate(keras.callbacks.Callback):
     def __init__(self, factor):
+        super().__init__()
         self.factor = factor
         self.rates = []
         self.losses = []
@@ -50,6 +51,7 @@ def plot_lr_vs_loss(rates, losses):
 
 class OneCycleScheduler(keras.callbacks.Callback):
     def __init__(self, iterations, max_rate, start_rate=None, last_iterations=None, last_rate=None):
+        super().__init__()
         self.iterations = iterations
         self.max_rate = max_rate
         self.start_rate = start_rate or max_rate / 10
