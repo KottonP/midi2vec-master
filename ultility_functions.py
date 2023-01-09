@@ -126,9 +126,17 @@ def on_epoch_end(self, epoch, logs=None):  # start_from_epoch implementation due
 
 class EarlyStoppingUp(EarlyStopping):
 
-    def __init__(self, start_from_epoch=0):
+    def __init__( self,
+                  monitor="val_loss",
+                  min_delta=0,
+                  patience=0,
+                  verbose=0,
+                  mode="auto",
+                  baseline=None,
+                  restore_best_weights=False,
+                  start_from_epoch=0):
 
-        super().__init__()
+        super().__init__(monitor, min_delta, patience, verbose, mode, baseline, restore_best_weights)
 
         self.start_from_epoch = start_from_epoch
 
