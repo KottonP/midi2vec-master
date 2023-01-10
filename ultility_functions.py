@@ -100,6 +100,12 @@ def sign_tests(network_1_accuracies, network_2_accuracies):
         print('Wilcoxon signed-rank test:', p_value_z)
 
 
+def get_model(clf: KerasClassifier, net_params: dict):
+    clf_params = clf.get_params(deep=True)
+    model = clf_params["model"]
+    model_params = {key: net_params[key] for key in inspect.signature(model).parameters.keys()}
+    return model(**model_params)
+
 def get_model_plot(clf: KerasClassifier, net_params: dict):
     clf_params = clf.get_params(deep=True)
     model = clf_params["model"]
