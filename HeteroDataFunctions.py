@@ -44,7 +44,8 @@ def node_cat_dict(nodes: pd.DataFrame) -> dict:
     """Compile all nodes in the nodes Dataframe in a dictionary."""
     note_groups = [n for n in nodes['name'] if n[0] == 'g' and n[1] in [str(i) for i in range(10)] + ['-']]
 
-    not_group_nodes = [n for n in nodes['name'] if n not in note_groups]
+    # not_group_nodes = [n for n in nodes['name'] if n not in note_groups]
+    not_group_nodes = list(set(nodes['name']) - set(note_groups))
 
     url = [n for n in not_group_nodes if n[:4] == 'http']
     program_nodes = []
@@ -57,11 +58,29 @@ def node_cat_dict(nodes: pd.DataFrame) -> dict:
         else:
             print(u)
 
-    name_nodes = [n for n in not_group_nodes if n[0] == '-']
-    dur_nodes = [n for n in not_group_nodes if n[:3] == 'dur']
-    vel_nodes = [n for n in not_group_nodes if n[:3] == 'vel']
-    time_nodes = [n for n in not_group_nodes if n[:4] == 'time']
-    tempo_nodes = [n for n in not_group_nodes if n not in set(dur_nodes).union(vel_nodes, time_nodes, name_nodes, url)]
+    # name_nodes = [n for n in not_group_nodes if '_-_' in n]
+    # dur_nodes = [n for n in not_group_nodes if n[:3] == 'dur']
+    # vel_nodes = [n for n in not_group_nodes if n[:3] == 'vel']
+    # time_nodes = [n for n in not_group_nodes if n[:4] == 'time']
+    # tempo_nodes = list(set(not_group_nodes) - set(dur_nodes).union(vel_nodes, time_nodes, name_nodes, url))
+
+    not_group_url_nodes = list(set(not_group_nodes) - set(url))
+    name_nodes = []
+    dur_nodes = []
+    vel_nodes = []
+    time_nodes = []
+    tempo_nodes = []
+    for n in not_group_url_nodes:
+        if '_-_' in n:
+            name_nodes.append(n)
+        elif n[:3] == 'dur':
+            dur_nodes.append(n)
+        elif n[:3] == 'vel':
+            vel_nodes.append(n)
+        elif n[:4] == 'time':
+            time_nodes.append(n)
+        else:
+            tempo_nodes.append(n)
 
     node_categories = {"note_group": note_groups,
                        "pitch": note_nodes,
@@ -164,7 +183,11 @@ def add_edge_type(edges_df: pd.DataFrame, node_cat: dict) -> pd.DataFrame:
             edge_name_source, edge_name_target = edge_name_target, edge_name_source
 
         edge_name = format_edge_name(edge_name_source, edge_name_target)
-        edge_type.append(edge_name)
+        if "__?__" in edge_name:
+            augmented_edges_df.drop(edges_df.index[i], inplace=True)
+            augmented_edges_df.reset_index(drop=True, inplace=True)
+        else:
+            edge_type.append(edge_name)
 
     augmented_edges_df['edge_type'] = edge_type
     return augmented_edges_df
