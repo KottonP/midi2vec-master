@@ -183,11 +183,7 @@ def add_edge_type(edges_df: pd.DataFrame, node_cat: dict) -> pd.DataFrame:
             edge_name_source, edge_name_target = edge_name_target, edge_name_source
 
         edge_name = format_edge_name(edge_name_source, edge_name_target)
-        if "__?__" in edge_name:
-            augmented_edges_df.drop(edges_df.index[i], inplace=True)
-            augmented_edges_df.reset_index(drop=True, inplace=True)
-        else:
-            edge_type.append(edge_name)
+        edge_type.append(edge_name)
 
     augmented_edges_df['edge_type'] = edge_type
     return augmented_edges_df
