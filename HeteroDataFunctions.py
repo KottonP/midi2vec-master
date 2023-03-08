@@ -1,6 +1,7 @@
 import os
 from typing import Optional
 import itertools
+import time
 
 import scipy
 import numpy as np
@@ -11,6 +12,22 @@ import matplotlib
 
 import torch
 from torch_geometric.data import HeteroData
+
+
+def tictoc(func):
+    """Decorator to measure the time of our functions"""
+
+    def wrapper(*args, **kwargs):
+        t1 = time.perf_counter()
+        result = func(*args, **kwargs)
+        t2 = time.perf_counter() - t1
+        if t2 < 60:
+            print(f"{func.__name__} took {t2:.2f} secs to run")
+        else:
+            print(f"{func.__name__} took {t2 / 60:.2f} mins to run")
+
+        return result
+    return wrapper
 
 
 def complete_graph(input_path) -> nx.Graph:
@@ -40,6 +57,7 @@ def complete_graph(input_path) -> nx.Graph:
     return g
 
 
+@tictoc
 def node_cat_dict(nodes: pd.DataFrame) -> dict:
     """Compile all nodes in the nodes Dataframe in a dictionary."""
     note_groups = [n for n in nodes['name'] if n[0] == 'g' and n[1] in [str(i) for i in range(10)] + ['-']]
@@ -133,6 +151,7 @@ def format_edge_name(source: str, target: str) -> str:
     return edge_name
 
 
+@tictoc
 def add_node_type(nodes_df: pd.DataFrame, node_cat: dict) -> pd.DataFrame:
     """
     Return input node Dataframe with a new column named "node_type", which specifies the type of the node.
@@ -152,6 +171,7 @@ def add_node_type(nodes_df: pd.DataFrame, node_cat: dict) -> pd.DataFrame:
     return augmented_nodes_df
 
 
+@tictoc
 def add_edge_type(edges_df: pd.DataFrame, node_cat: dict) -> pd.DataFrame:
     """
     Return input edge Dataframe with a new column named "edge_type", which specifies the type of the edge.
@@ -189,6 +209,7 @@ def add_edge_type(edges_df: pd.DataFrame, node_cat: dict) -> pd.DataFrame:
     return augmented_edges_df
 
 
+@tictoc
 def add_types(nodes_df: pd.DataFrame, edges_df: pd.DataFrame, node_cat: dict) -> (pd.DataFrame, pd.DataFrame):
     """Execute add_node_type and add_edge_type, and return a tuple of the new Dataframes."""
     return add_node_type(nodes_df, node_cat), add_edge_type(edges_df, node_cat)
@@ -203,6 +224,7 @@ class Encoder:
     def __init__(self, str_list: list):
         self.mapping = {string: i for i, string in enumerate(str_list)}
 
+    @tictoc
     def encode_nodes(self, df: pd.DataFrame) -> torch.Tensor:
         out = torch.zeros([len(df.index), 2], dtype=torch.int32)
 
@@ -210,12 +232,13 @@ class Encoder:
             out[i, 0], out[i, 1] = self.mapping[df.iloc[i]['name']], self.mapping[df.iloc[i]['node_type']]
         return out
 
+    @tictoc
     def encode_edges(self, df: pd.DataFrame) -> torch.Tensor:
         out = torch.zeros([len(df.index), 3], dtype=torch.int32)
 
         for i in range(len(df.index)):
             out[i, 0], out[i, 1], out[i, 2] = self.mapping[df.iloc[i]['source']], self.mapping[df.iloc[i]['target']], \
-            self.mapping[df.iloc[i]['edge_type']]
+                self.mapping[df.iloc[i]['edge_type']]
         return out
 
     def decode_value(self, value: int) -> str:
