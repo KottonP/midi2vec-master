@@ -27,6 +27,7 @@ def tictoc(func):
             print(f"{func.__name__} took {t2 / 60:.2f} mins to run")
 
         return result
+
     return wrapper
 
 
@@ -220,6 +221,10 @@ def flatten_lol(lol: list) -> list:
     return list(itertools.chain(*list(lol)))
 
 
+def midi_type(midi_name: str) -> str:
+    return midi_name.split('_-_')[0]
+
+
 class Encoder:
     def __init__(self, str_list: list):
         self.mapping = {string: i for i, string in enumerate(str_list)}
@@ -230,6 +235,13 @@ class Encoder:
 
         for i in range(len(df.index)):
             out[i, 0], out[i, 1] = self.mapping[df.iloc[i]['name']], self.mapping[df.iloc[i]['node_type']]
+        return out
+
+    def encode_nodes2(self, df: pd.DataFrame) -> torch.Tensor:
+        out = torch.zeros([len(df.index), 1], dtype=torch.int32)
+
+        for i in range(len(df.index)):
+            out[i, 0] = self.mapping[df.iloc[i]['name']]
         return out
 
     @tictoc
