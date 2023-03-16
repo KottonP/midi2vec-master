@@ -226,18 +226,13 @@ def midi_type(midi_name: str) -> str:
 
 
 class Encoder:
-    def __init__(self, str_list: list):
-        self.mapping = {string: i for i, string in enumerate(str_list)}
+    def __init__(self, str_list: list, n_labels: int = 0):
+        """n_labels is the number of the target categories.
+        We need it so there is no mix-up between the LabelEncoder and the current one."""
+        self.mapping = {string: i + n_labels for i, string in enumerate(str_list)}
 
     @tictoc
     def encode_nodes(self, df: pd.DataFrame) -> torch.Tensor:
-        out = torch.zeros([len(df.index), 2], dtype=torch.int32)
-
-        for i in range(len(df.index)):
-            out[i, 0], out[i, 1] = self.mapping[df.iloc[i]['name']], self.mapping[df.iloc[i]['node_type']]
-        return out
-
-    def encode_nodes2(self, df: pd.DataFrame) -> torch.Tensor:
         out = torch.zeros([len(df.index), 1], dtype=torch.int32)
 
         for i in range(len(df.index)):
@@ -246,11 +241,10 @@ class Encoder:
 
     @tictoc
     def encode_edges(self, df: pd.DataFrame) -> torch.Tensor:
-        out = torch.zeros([len(df.index), 3], dtype=torch.int32)
+        out = torch.zeros([len(df.index), 2], dtype=torch.int32)
 
         for i in range(len(df.index)):
-            out[i, 0], out[i, 1], out[i, 2] = self.mapping[df.iloc[i]['source']], self.mapping[df.iloc[i]['target']], \
-                self.mapping[df.iloc[i]['edge_type']]
+            out[i, 0], out[i, 1] = self.mapping[df.iloc[i]['source']], self.mapping[df.iloc[i]['target']]
         return out
 
     def decode_value(self, value: int) -> str:
