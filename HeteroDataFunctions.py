@@ -233,7 +233,7 @@ class Encoder:
 
     @tictoc
     def encode_nodes(self, df: pd.DataFrame) -> torch.Tensor:
-        out = torch.zeros([len(df.index), 1], dtype=torch.int32)
+        out = torch.zeros([len(df.index), 1], dtype=torch.float32)
 
         for i in range(len(df.index)):
             out[i, 0] = self.mapping[df.iloc[i]['name']]
