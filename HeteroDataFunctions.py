@@ -230,10 +230,18 @@ class Encoder:
         """n_labels is the number of the target categories.
         We need it so there is no mix-up between the LabelEncoder and the current one."""
         self.mapping = {string: i + n_labels for i, string in enumerate(str_list)}
+        self.rev_mapping = {v: k for k, v in self.mapping.items()}
+
+    def get_encoding(self, s: str) -> int:
+        return self.mapping[s]
+
+    def decode_value(self, value: int) -> str:
+        # return list(self.mapping.keys())[list(self.mapping.values()).index(value)]
+        return self.rev_mapping[value]
 
     @tictoc
     def encode_nodes(self, df: pd.DataFrame) -> torch.Tensor:
-        out = torch.zeros([len(df.index), 1], dtype=torch.float32)
+        out = torch.zeros([len(df.index), 1], dtype=torch.float)
 
         for i in range(len(df.index)):
             out[i, 0] = self.mapping[df.iloc[i]['name']]
@@ -246,9 +254,6 @@ class Encoder:
         for i in range(len(df.index)):
             out[i, 0], out[i, 1] = self.mapping[df.iloc[i]['source']], self.mapping[df.iloc[i]['target']]
         return out
-
-    def decode_value(self, value: int) -> str:
-        return list(self.mapping.keys())[list(self.mapping.values()).index(value)]
 
     def decode_df(self, ten: torch.Tensor) -> pd.DataFrame:
         out = pd.DataFrame(index=range(ten.size(0)), columns=range(ten.size(1)))
