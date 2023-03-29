@@ -221,8 +221,11 @@ def flatten_lol(lol: list) -> list:
     return list(itertools.chain(*list(lol)))
 
 
-def midi_type(midi_name: str) -> str:
-    return midi_name.split('_-_')[0]
+def midi_type(midi_name: str, classes: int) -> str:
+    if classes == 5:
+        return midi_name.split('_-_')[0]
+    elif classes == 10:
+        return midi_name.split('_-_')[1].split('-')[0]
 
 
 class Encoder:
