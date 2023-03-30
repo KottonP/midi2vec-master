@@ -8,7 +8,9 @@ import numpy as np
 import pandas as pd
 
 import networkx as nx
-import matplotlib
+import matplotlib.pyplot as plt
+
+from sklearn.metrics import ConfusionMatrixDisplay
 
 import torch
 from torch_geometric.data import HeteroData
@@ -226,6 +228,40 @@ def midi_type(midi_name: str, classes: int) -> str:
         return midi_name.split('_-_')[0]
     elif classes == 10:
         return midi_name.split('_-_')[1].split('-')[0]
+
+
+def plot_graph(acc_lists: dict):
+    epochs = range(1, len(acc_lists['train']) + 1)
+
+    fig = plt.figure(figsize=(15, 5))
+
+    plt.plot(epochs, acc_lists['train'], 'bo', label='Training accuracy')
+    plt.plot(epochs, acc_lists['val'], 'b', label='Validation accuracy')
+    plt.plot(epochs, acc_lists['test'], 'r', label='Test accuracy')
+    plt.title('Training, Validation and Test Accuracy')
+    plt.xlabel('Epochs')
+    plt.ylabel('Accuracy')
+    plt.legend()
+
+    plt.show()
+
+
+def plot_4graphs(loss_list: list, acc_lists: dict):
+
+    epochs = range(1, len(acc_lists['train']) + 1)
+    fig, axs = plt.subplots(2, 2, figsize=(20, 15))
+
+    axs[0, 0].plot(epochs, loss_list)
+    axs[0, 0].set_title('Loss')
+
+    axs[0, 1].plot(epochs, acc_lists['train'], 'bo')
+    axs[0, 1].set_title('Training accuracy')
+
+    axs[1, 0].plot(epochs, acc_lists['val'], 'b')
+    axs[1, 0].set_title('Validation accuracy')
+
+    axs[1, 1].plot(epochs, acc_lists['test'], 'r')
+    axs[1, 1].set_title('Test accuracy')
 
 
 class Encoder:
