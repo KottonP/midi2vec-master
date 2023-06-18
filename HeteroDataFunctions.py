@@ -11,6 +11,7 @@ import networkx as nx
 import matplotlib.pyplot as plt
 
 from sklearn.metrics import ConfusionMatrixDisplay
+import ray
 
 import torch
 from torch_geometric.data import HeteroData
@@ -154,7 +155,7 @@ def format_edge_name(source: str, target: str) -> str:
     return edge_name
 
 
-@tictoc
+@ray.remote
 def add_node_type(nodes_df: pd.DataFrame, node_cat: dict) -> pd.DataFrame:
     """
     Return input node Dataframe with a new column named "node_type", which specifies the type of the node.
@@ -174,7 +175,7 @@ def add_node_type(nodes_df: pd.DataFrame, node_cat: dict) -> pd.DataFrame:
     return augmented_nodes_df
 
 
-@tictoc
+@ray.remote
 def add_edge_type(edges_df: pd.DataFrame, node_cat: dict) -> pd.DataFrame:
     """
     Return input edge Dataframe with a new column named "edge_type", which specifies the type of the edge.
@@ -215,7 +216,10 @@ def add_edge_type(edges_df: pd.DataFrame, node_cat: dict) -> pd.DataFrame:
 @tictoc
 def add_types(nodes_df: pd.DataFrame, edges_df: pd.DataFrame, node_cat: dict) -> (pd.DataFrame, pd.DataFrame):
     """Execute add_node_type and add_edge_type, and return a tuple of the new Dataframes."""
-    return add_node_type(nodes_df, node_cat), add_edge_type(edges_df, node_cat)
+    ret_id1 = add_node_type.remote(nodes_df, node_cat)
+    ret_id2 = add_edge_type.remote(edges_df, node_cat)
+    ret1, ret2 = ray.get([ret_id1, ret_id2])
+    return ret1, ret2
 
 
 def flatten_lol(lol: list) -> list:
