@@ -234,7 +234,7 @@ def midi_type(midi_name: str, classes: int) -> str:
         return midi_name.split('_-_')[1].split('-')[0]
 
 
-def plot_graph(acc_lists: dict):
+def plot_graph(acc_lists: dict, save_dir: str = None):
     epochs = range(1, len(acc_lists['train']) + 1)
 
     fig = plt.figure(figsize=(15, 5))
@@ -247,15 +247,18 @@ def plot_graph(acc_lists: dict):
     plt.ylabel('Accuracy')
     plt.legend()
 
+    if save_dir:
+        fig.savefig(save_dir)
     plt.show()
 
 
-def plot_4graphs(loss_list: list, acc_lists: dict):
+def plot_4graphs(loss_list: list, acc_lists: dict, index: int = 0, save_dir: str = None):
 
     epochs = range(1, len(acc_lists['train']) + 1)
     fig, axs = plt.subplots(2, 2, figsize=(20, 15))
 
     axs[0, 0].plot(epochs, loss_list)
+    axs[0, 0].set_ylim(0,max([v for v in loss_list[index:]]))
     axs[0, 0].set_title('Loss')
 
     axs[0, 1].plot(epochs, acc_lists['train'], 'bo')
@@ -267,6 +270,8 @@ def plot_4graphs(loss_list: list, acc_lists: dict):
     axs[1, 1].plot(epochs, acc_lists['test'], 'r')
     axs[1, 1].set_title('Test accuracy')
 
+    if save_dir:
+        fig.savefig(save_dir)
 
 class Encoder:
     def __init__(self, str_list: list, n_labels: int = 0):
