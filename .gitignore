@@ -4,5 +4,6 @@ edgelist/
 embeddings/
 .ipynb_checkpoints/
 *.mid
+*.csv
 old/
 __pycache__/
