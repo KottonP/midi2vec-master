@@ -15,6 +15,7 @@ import ray
 
 import torch
 from torch_geometric.data import HeteroData
+from torch_geometric.nn import SAGEConv
 
 
 def tictoc(func):
@@ -253,12 +254,11 @@ def plot_graph(acc_lists: dict, save_dir: str = None):
 
 
 def plot_4graphs(loss_list: list, acc_lists: dict, index: int = 0, save_dir: str = None):
-
     epochs = range(1, len(acc_lists['train']) + 1)
     fig, axs = plt.subplots(2, 2, figsize=(20, 15))
 
     axs[0, 0].plot(epochs, loss_list)
-    axs[0, 0].set_ylim(0,max([v for v in loss_list[index:]]))
+    axs[0, 0].set_ylim(0, max([v for v in loss_list[index:]]))
     axs[0, 0].set_title('Loss')
 
     axs[0, 1].plot(epochs, acc_lists['train'], 'bo')
@@ -272,6 +272,7 @@ def plot_4graphs(loss_list: list, acc_lists: dict, index: int = 0, save_dir: str
 
     if save_dir:
         fig.savefig(save_dir)
+
 
 class Encoder:
     def __init__(self, str_list: list, n_labels: int = 0):
@@ -316,3 +317,23 @@ class Encoder:
                         ten[i][2].item())
 
         return out
+
+
+class GCN(torch.nn.Module):
+    def __init__(self, hidden_channels, out_channels, drop_layer: bool = False, drop_rate: float = 0.5):
+        super().__init__()
+        self.conv1 = SAGEConv((-1, -1), hidden_channels)
+        self.conv2 = SAGEConv((-1, -1), out_channels)
+        self.drop = drop_layer
+        self.drop_rate = drop_rate
+
+    def forward(self, x, edge_index):
+        if self.drop:
+            x = F.dropout(x, p=self.drop_rate, training=self.training)
+            x = self.conv1(x, edge_index).relu()
+            x = F.dropout(x, p=self.drop_rate, training=self.training)
+            x = self.conv2(x, edge_index)
+        else:
+            x = self.conv1(x, edge_index).relu()
+            x = self.conv2(x, edge_index)
+        return x
