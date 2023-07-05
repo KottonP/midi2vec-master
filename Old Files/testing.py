@@ -25,7 +25,7 @@ if __name__ == "__main__":
     from torch_geometric.loader import DenseDataLoader as DenseLoader
     from tqdm import tqdm
 
-    from HeteroDataFunctions import Encoder, add_types, complete_graph, flatten_lol, node_cat_dict, midi_type, plot_graph, plot_4graphs
+    from UltilityFunctions import Encoder, add_types, complete_graph, flatten_lol, node_cat_dict, midi_type, plot_graph, plot_4graphs
 
     # print(scipy.__version__)
     # print(matplotlib.__version__)
