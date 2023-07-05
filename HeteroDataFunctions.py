@@ -11,11 +11,12 @@ import networkx as nx
 import matplotlib.pyplot as plt
 
 from sklearn.metrics import ConfusionMatrixDisplay
-import ray
+
 
 import torch
 from torch_geometric.data import HeteroData
-from torch_geometric.nn import SAGEConv
+from torch_geometric.nn import SAGEConv, Linear
+import torch.nn.functional as F
 
 
 def tictoc(func):
@@ -116,6 +117,54 @@ def node_cat_dict(nodes: pd.DataFrame) -> dict:
                        }
     return node_categories
 
+@tictoc
+def node_cat_dict_giant(nodes: pd.DataFrame) -> dict:
+    """Compile all nodes in the nodes Dataframe in a dictionary; for the Giant-MIDI dataset."""
+    note_groups = [n for n in nodes['name'] if n[0] == 'g' and n[1] in [str(i) for i in range(10)] + ['-']]
+
+    # not_group_nodes = [n for n in nodes['name'] if n not in note_groups]
+    not_group_nodes = list(set(nodes['name']) - set(note_groups))
+
+    url = [n for n in not_group_nodes if n[:4] == 'http']
+    program_nodes = []
+    note_nodes = []
+    for u in url:
+        if "programs" in u:
+            program_nodes.append(u)
+        elif "notes" in u:
+            note_nodes.append(u)
+        else:
+            print(u)
+
+
+    not_group_url_nodes = list(set(not_group_nodes) - set(url))
+    name_nodes = []
+    dur_nodes = []
+    vel_nodes = []
+    time_nodes = []
+    tempo_nodes = []
+    for n in not_group_url_nodes:
+        if n[0] == '-' :
+            name_nodes.append(n)
+        elif n[:3] == 'dur':
+            dur_nodes.append(n)
+        elif n[:3] == 'vel':
+            vel_nodes.append(n)
+        elif n[:4] == 'time':
+            time_nodes.append(n)
+        else:
+            tempo_nodes.append(n)
+
+    node_categories = {"note_group": note_groups,
+                       "pitch": note_nodes,
+                       "program": program_nodes,
+                       "MIDI": name_nodes,
+                       "duration": dur_nodes,
+                       "velocity": vel_nodes,
+                       "time_sig": time_nodes,
+                       "tempo": tempo_nodes
+                       }
+    return node_categories
 
 def reverse_edge(df: pd.DataFrame, row: int, inplace: bool = False) -> Optional[pd.DataFrame]:
     """Reverse the source and target of a single edge(row) in the edge dataframe."""
@@ -156,7 +205,6 @@ def format_edge_name(source: str, target: str) -> str:
     return edge_name
 
 
-@ray.remote
 def add_node_type(nodes_df: pd.DataFrame, node_cat: dict) -> pd.DataFrame:
     """
     Return input node Dataframe with a new column named "node_type", which specifies the type of the node.
@@ -176,7 +224,6 @@ def add_node_type(nodes_df: pd.DataFrame, node_cat: dict) -> pd.DataFrame:
     return augmented_nodes_df
 
 
-@ray.remote
 def add_edge_type(edges_df: pd.DataFrame, node_cat: dict) -> pd.DataFrame:
     """
     Return input edge Dataframe with a new column named "edge_type", which specifies the type of the edge.
@@ -215,12 +262,12 @@ def add_edge_type(edges_df: pd.DataFrame, node_cat: dict) -> pd.DataFrame:
 
 
 @tictoc
-def add_types(nodes_df: pd.DataFrame, edges_df: pd.DataFrame, node_cat: dict) -> (pd.DataFrame, pd.DataFrame):
+def add_types(nodes_df: pd.DataFrame, edges_df: pd.DataFrame, node_cat: dict) -> tuple[pd.DataFrame, pd.DataFrame]:
     """Execute add_node_type and add_edge_type, and return a tuple of the new Dataframes."""
-    ret_id1 = add_node_type.remote(nodes_df, node_cat)
-    ret_id2 = add_edge_type.remote(edges_df, node_cat)
-    ret1, ret2 = ray.get([ret_id1, ret_id2])
-    return ret1, ret2
+     
+    augmented_nodes_df = add_node_type(nodes_df, node_cat)
+    augmented_edges_df = add_edge_type(edges_df, node_cat)
+    return augmented_nodes_df, augmented_edges_df
 
 
 def flatten_lol(lol: list) -> list:
@@ -320,20 +367,40 @@ class Encoder:
 
 
 class GCN(torch.nn.Module):
-    def __init__(self, hidden_channels, out_channels, drop_layer: bool = False, drop_rate: float = 0.5):
+    def __init__(self, hidden_channels, out_channels, drop_layer: bool=False, drop_rate: float=0.5, lin_out: bool=False):
         super().__init__()
         self.conv1 = SAGEConv((-1, -1), hidden_channels)
-        self.conv2 = SAGEConv((-1, -1), out_channels)
         self.drop = drop_layer
         self.drop_rate = drop_rate
+        self.lin_out = lin_out
+        if self.lin_out:
+            self.conv2 = SAGEConv(hidden_channels, hidden_channels)
+            self.lin = torch.nn.Linear(hidden_channels, out_channels)
+        else:
+            self.conv2 = SAGEConv(hidden_channels, out_channels)
 
     def forward(self, x, edge_index):
         if self.drop:
-            x = F.dropout(x, p=self.drop_rate, training=self.training)
-            x = self.conv1(x, edge_index).relu()
-            x = F.dropout(x, p=self.drop_rate, training=self.training)
-            x = self.conv2(x, edge_index)
+            if self.lin_out:
+                x = F.dropout(x, p=self.drop_rate, training=self.training)
+                x = self.conv1(x, edge_index).relu()
+                x = F.dropout(x, p=self.drop_rate, training=self.training)
+                x = self.conv2(x, edge_index).relu()
+                x = F.dropout(x, p=self.drop_rate, training=self.training)
+                x = self.lin(x)
+            else:
+                x = F.dropout(x, p=self.drop_rate, training=self.training)
+                x = self.conv1(x, edge_index).relu()
+                x = F.dropout(x, p=self.drop_rate, training=self.training)
+                x = self.conv2(x, edge_index)
+
         else:
-            x = self.conv1(x, edge_index).relu()
-            x = self.conv2(x, edge_index)
+            if self.lin_out:
+                x = self.conv1(x, edge_index).relu()
+                x = self.conv2(x, edge_index).relu()
+                x = self.lin(x)
+            else:
+                x = self.conv1(x, edge_index).relu()
+                x = self.conv2(x, edge_index)
         return x
+
